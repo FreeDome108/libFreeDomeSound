@@ -32,8 +32,7 @@ VinylVideoPlayer::~VinylVideoPlayer() {
 bool VinylVideoPlayer::initialize() {
     std::lock_guard<std::mutex> lock(player_mutex_);
     
-    // Инициализация FFmpeg
-    av_register_all();
+    // Инициализация FFmpeg (в новых версиях av_register_all() устарел)
     avformat_network_init();
     
     state_ = PlaybackState::STOPPED;
