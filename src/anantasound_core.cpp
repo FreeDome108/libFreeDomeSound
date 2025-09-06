@@ -150,6 +150,11 @@ void InterferenceField::createQuantumEntanglement(size_t field1_idx, size_t fiel
     }
 }
 
+size_t InterferenceField::getEntangledPairsCount() const {
+    std::lock_guard<std::mutex> lock(field_mutex_);
+    return entangled_pairs_.size();
+}
+
 // DomeAcousticResonator implementation
 DomeAcousticResonator::DomeAcousticResonator(double radius, double height)
     : dome_radius_(radius), dome_height_(height) {
@@ -371,13 +376,90 @@ AnantaSoundCore::SystemStatistics AnantaSoundCore::getStatistics() const {
     std::lock_guard<std::mutex> lock(core_mutex_);
     
     stats.active_fields = sound_fields_.size();
-    stats.entangled_pairs = 0; // TODO: Implement entanglement tracking
-    stats.coherence_ratio = 0.0; // TODO: Implement coherence calculation
-    stats.energy_efficiency = 1.0; // TODO: Implement energy calculation
-    stats.qrd_connected = false; // TODO: Implement QRD connection status
-    stats.mechanical_devices_active = 0; // TODO: Implement device tracking
+    
+    // Count entangled pairs from interference fields
+    stats.entangled_pairs = 0;
+    for (const auto& field : interference_fields_) {
+        if (field) {
+            stats.entangled_pairs += field->getEntangledPairsCount();
+        }
+    }
+    
+    // Calculate coherence ratio based on quantum states
+    stats.coherence_ratio = calculateCoherenceRatio();
+    
+    // Calculate energy efficiency based on field amplitudes
+    stats.energy_efficiency = calculateEnergyEfficiency();
+    
+    // Check QRD connection status
+    stats.qrd_connected = checkQRDConnection();
+    
+    // Count active mechanical devices
+    stats.mechanical_devices_active = countActiveMechanicalDevices();
     
     return stats;
+}
+
+// Helper methods implementation
+double AnantaSoundCore::calculateCoherenceRatio() const {
+    if (sound_fields_.empty()) {
+        return 0.0;
+    }
+    
+    size_t coherent_fields = 0;
+    size_t total_fields = sound_fields_.size();
+    
+    for (const auto& [pos, field] : sound_fields_) {
+        if (field.quantum_state == QuantumSoundState::COHERENT || 
+            field.quantum_state == QuantumSoundState::SUPERPOSITION) {
+            coherent_fields++;
+        }
+    }
+    
+    return static_cast<double>(coherent_fields) / static_cast<double>(total_fields);
+}
+
+double AnantaSoundCore::calculateEnergyEfficiency() const {
+    if (sound_fields_.empty()) {
+        return 1.0;
+    }
+    
+    double total_energy = 0.0;
+    double max_possible_energy = 0.0;
+    
+    for (const auto& [pos, field] : sound_fields_) {
+        double field_energy = std::abs(field.amplitude);
+        total_energy += field_energy;
+        max_possible_energy += 1.0; // Assuming max amplitude is 1.0
+    }
+    
+    if (max_possible_energy == 0.0) {
+        return 1.0;
+    }
+    
+    return total_energy / max_possible_energy;
+}
+
+bool AnantaSoundCore::checkQRDConnection() const {
+    // Simulate QRD connection check
+    // In a real implementation, this would check actual hardware connection
+    return !sound_fields_.empty() && interference_fields_.size() > 0;
+}
+
+size_t AnantaSoundCore::countActiveMechanicalDevices() const {
+    // Simulate mechanical device counting
+    // In a real implementation, this would check actual device status
+    size_t device_count = 0;
+    
+    // Count devices based on active fields and their quantum states
+    for (const auto& [pos, field] : sound_fields_) {
+        if (field.quantum_state == QuantumSoundState::EXCITED ||
+            field.quantum_state == QuantumSoundState::ENTANGLED) {
+            device_count++;
+        }
+    }
+    
+    return device_count;
 }
 
 // QuantumAcousticProcessor implementation

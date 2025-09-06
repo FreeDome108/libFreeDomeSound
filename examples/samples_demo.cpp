@@ -28,7 +28,7 @@ public:
             for (const auto& entry : fs::directory_iterator(samples_dir)) {
                 if (entry.is_regular_file()) {
                     std::string ext = entry.path().extension().string();
-                    if (ext == ".wav" || ext == ".mp3") {
+                    if (ext == ".wav" || ext == ".mp3" || ext == ".flac") {
                         sample_files_.push_back(entry.path().filename().string());
                     }
                 }
@@ -64,11 +64,13 @@ public:
         // Разные частоты для разных типов сэмплов
         double base_frequency = 432.0; // Базовая частота
         if (sample_name.find("Hanuman") != std::string::npos) {
-            base_frequency = 528.0; // Частота любви и трансформации
+            base_frequency = 396.0; // Частота корневой чакры и стабильности
         } else if (sample_name.find("Nitai") != std::string::npos) {
             base_frequency = 639.0; // Частота гармонии отношений
         } else if (sample_name.find("Shrita") != std::string::npos) {
             base_frequency = 741.0; // Частота интуиции и пробуждения
+        } else if (sample_name.find("КАСТА") != std::string::npos || sample_name.find("Вокруг ШУМ") != std::string::npos) {
+            base_frequency = 396.0; // Частота корневой чакры и стабильности
         }
         
         // Создаем основное звуковое поле

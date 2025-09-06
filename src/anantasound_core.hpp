@@ -96,6 +96,9 @@ public:
     
     // Создать квантовую запутанность между полями
     void createQuantumEntanglement(size_t field1_idx, size_t field2_idx);
+    
+    // Получить количество запутанных пар
+    size_t getEntangledPairsCount() const;
 };
 
 // Акустический резонатор для купола
@@ -195,10 +198,20 @@ public:
     };
     
     SystemStatistics getStatistics() const;
+    
+private:
+    // Helper methods for statistics calculation
+    double calculateCoherenceRatio() const;
+    double calculateEnergyEfficiency() const;
+    bool checkQRDConnection() const;
+    size_t countActiveMechanicalDevices() const;
 };
 
 // Объявления внешних функций
 std::string getVersion();
 std::string getBuildInfo();
+
+// Включение видео плеера
+#include "video_player.hpp"
 
 } // namespace AnantaSound

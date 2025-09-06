@@ -21,7 +21,7 @@ private:
     
 public:
     AdvancedAudioDemo() : core_(5.0, 3.0) {
-        samples_dir_ = "../../samples";
+        samples_dir_ = "../samples";
         loadSampleFiles();
     }
     

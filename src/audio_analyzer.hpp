@@ -1,132 +1,95 @@
 #pragma once
 
-#include <string>
 #include <vector>
-#include <map>
-#include <memory>
 #include <complex>
+#include <memory>
+#include <mutex>
 #include <chrono>
 
 namespace AnantaSound {
 
-// Структура для метаданных аудио файла
-struct AudioMetadata {
-    std::string title;
-    std::string artist;
-    std::string album;
-    std::string genre;
-    int year;
-    int track_number;
-    std::string comment;
-    std::string copyright;
-    std::string software;
+// Audio analysis results
+struct AudioAnalysisResult {
+    std::vector<double> frequency_spectrum;    // FFT frequency spectrum
+    std::vector<double> magnitude_spectrum;    // Magnitude spectrum
+    std::vector<double> phase_spectrum;        // Phase spectrum
+    double fundamental_frequency;              // Fundamental frequency (Hz)
+    double volume_level;                       // Volume level (0.0 - 1.0)
+    double spectral_centroid;                  // Spectral centroid (Hz)
+    double spectral_rolloff;                   // Spectral rolloff (Hz)
+    double zero_crossing_rate;                 // Zero crossing rate
+    double tempo;                              // Estimated tempo (BPM)
+    std::chrono::high_resolution_clock::time_point timestamp;
     
-    AudioMetadata() : year(0), track_number(0) {}
+    AudioAnalysisResult() : fundamental_frequency(0.0), volume_level(0.0),
+                           spectral_centroid(0.0), spectral_rolloff(0.0),
+                           zero_crossing_rate(0.0), tempo(0.0),
+                           timestamp(std::chrono::high_resolution_clock::now()) {}
 };
 
-// Структура для технической информации об аудио
-struct AudioInfo {
-    int sample_rate;
-    int channels;
-    int bits_per_sample;
-    double duration_seconds;
-    int64_t total_samples;
-    std::string format;
-    std::string codec;
-    
-    AudioInfo() : sample_rate(0), channels(0), bits_per_sample(0), 
-                  duration_seconds(0.0), total_samples(0) {}
-};
-
-// Структура для спектрального анализа
-struct SpectralData {
-    std::vector<std::complex<double>> fft_data;
-    std::vector<double> frequencies;
-    std::vector<double> magnitudes;
-    std::vector<double> phases;
-    double dominant_frequency;
-    double spectral_centroid;
-    double spectral_rolloff;
-    double spectral_bandwidth;
-    
-    SpectralData() : dominant_frequency(0.0), spectral_centroid(0.0), 
-                     spectral_rolloff(0.0), spectral_bandwidth(0.0) {}
-};
-
-// Класс для анализа аудио файлов
+// Audio analyzer class
 class AudioAnalyzer {
 private:
-    std::string file_path_;
-    AudioMetadata metadata_;
-    AudioInfo info_;
-    std::vector<float> audio_data_;
-    SpectralData spectral_data_;
-    bool is_loaded_;
+    size_t fft_size_;
+    size_t sample_rate_;
+    std::vector<std::complex<double>> fft_buffer_;
+    std::vector<double> window_function_;
+    mutable std::mutex analysis_mutex_;
+    
+    // Analysis parameters
+    double min_frequency_;
+    double max_frequency_;
+    size_t hop_size_;
     
 public:
-    AudioAnalyzer();
-    ~AudioAnalyzer();
+    AudioAnalyzer(size_t fft_size = 1024, size_t sample_rate = 44100);
+    ~AudioAnalyzer() = default;
     
-    // Загрузка аудио файла
-    bool loadAudioFile(const std::string& file_path);
+    // Initialize the analyzer
+    bool initialize();
     
-    // Анализ метаданных
-    bool extractMetadata();
+    // Analyze audio buffer
+    AudioAnalysisResult analyzeAudio(const std::vector<double>& audio_buffer);
     
-    // Спектральный анализ
-    bool performSpectralAnalysis();
+    // Analyze audio buffer with overlap
+    std::vector<AudioAnalysisResult> analyzeAudioWithOverlap(const std::vector<double>& audio_buffer);
     
-    // Анализ квантовых характеристик
-    bool analyzeQuantumCharacteristics();
+    // Get frequency bin for a given frequency
+    size_t getFrequencyBin(double frequency) const;
     
-    // Получение информации
-    const AudioMetadata& getMetadata() const { return metadata_; }
-    const AudioInfo& getAudioInfo() const { return info_; }
-    const SpectralData& getSpectralData() const { return spectral_data_; }
-    const std::vector<float>& getAudioData() const { return audio_data_; }
+    // Get frequency for a given bin
+    double getFrequency(size_t bin) const;
     
-    // Проверка загрузки
-    bool isLoaded() const { return is_loaded_; }
+    // Set analysis parameters
+    void setFrequencyRange(double min_freq, double max_freq);
+    void setHopSize(size_t hop_size);
     
-    // Очистка данных
-    void clear();
-    
-    // Экспорт результатов анализа
-    bool exportAnalysisReport(const std::string& output_path);
+    // Get current parameters
+    size_t getFFTSize() const { return fft_size_; }
+    size_t getSampleRate() const { return sample_rate_; }
+    double getMinFrequency() const { return min_frequency_; }
+    double getMaxFrequency() const { return max_frequency_; }
     
 private:
-    // Внутренние методы анализа
-    bool detectFormat(const std::string& file_path);
-    bool readAudioData();
-    void calculateFFT();
-    void analyzeFrequencyDomain();
-    void detectQuantumResonances();
+    // FFT implementation (simple radix-2)
+    void performFFT(std::vector<std::complex<double>>& data);
+    void performIFFT(std::vector<std::complex<double>>& data);
+    
+    // Window function generation
+    void generateWindowFunction();
+    
+    // Analysis helper methods
+    double calculateFundamentalFrequency(const std::vector<double>& magnitude_spectrum) const;
+    double calculateSpectralCentroid(const std::vector<double>& magnitude_spectrum) const;
+    double calculateSpectralRolloff(const std::vector<double>& magnitude_spectrum, double threshold = 0.85) const;
+    double calculateZeroCrossingRate(const std::vector<double>& audio_buffer) const;
+    double estimateTempo(const std::vector<double>& audio_buffer) const;
+    double calculateVolumeLevel(const std::vector<double>& audio_buffer) const;
+    
+    // Utility functions
+    void applyWindow(std::vector<double>& buffer) const;
+    std::vector<double> magnitudeSpectrum(const std::vector<std::complex<double>>& fft_result) const;
+    std::vector<double> phaseSpectrum(const std::vector<std::complex<double>>& fft_result) const;
 };
-
-// Утилиты для работы с аудио
-namespace AudioUtils {
-    
-    // Конвертация между форматами
-    bool convertFormat(const std::string& input_path, const std::string& output_path, 
-                      const std::string& output_format);
-    
-    // Нормализация аудио
-    bool normalizeAudio(const std::string& input_path, const std::string& output_path, 
-                       double target_level_db = -1.0);
-    
-    // Изменение частоты дискретизации
-    bool resampleAudio(const std::string& input_path, const std::string& output_path, 
-                       int target_sample_rate);
-    
-    // Создание тестового сигнала
-    bool generateTestSignal(const std::string& output_path, double frequency, 
-                           double duration, double amplitude = 0.5);
-    
-    // Проверка качества FLAC
-    bool validateFLACQuality(const std::string& file_path);
-    
-    // Получение информации о файле
-    std::string getFileInfo(const std::string& file_path);
-}
 
 } // namespace AnantaSound

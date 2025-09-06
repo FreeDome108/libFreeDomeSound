@@ -1,395 +1,282 @@
 #include "audio_analyzer.hpp"
-#include <iostream>
-#include <fstream>
-#include <sstream>
 #include <algorithm>
 #include <cmath>
-#include <filesystem>
-#include <sndfile.h>
-#include <taglib/tag.h>
-#include <taglib/fileref.h>
+#include <numeric>
+#include <iostream>
 
 namespace AnantaSound {
 
-AudioAnalyzer::AudioAnalyzer() : is_loaded_(false) {}
-
-AudioAnalyzer::~AudioAnalyzer() {
-    clear();
+AudioAnalyzer::AudioAnalyzer(size_t fft_size, size_t sample_rate)
+    : fft_size_(fft_size)
+    , sample_rate_(sample_rate)
+    , min_frequency_(20.0)
+    , max_frequency_(sample_rate_ / 2.0)
+    , hop_size_(fft_size_ / 4) {
+    
+    fft_buffer_.resize(fft_size_);
+    generateWindowFunction();
 }
 
-bool AudioAnalyzer::loadAudioFile(const std::string& file_path) {
-    if (!std::filesystem::exists(file_path)) {
-        std::cerr << "Audio file not found: " << file_path << std::endl;
+bool AudioAnalyzer::initialize() {
+    if (fft_size_ == 0 || sample_rate_ == 0) {
         return false;
     }
     
-    file_path_ = file_path;
-    
-    // Определяем формат файла
-    if (!detectFormat(file_path)) {
-        std::cerr << "Failed to detect audio format" << std::endl;
+    // Validate FFT size is power of 2
+    if ((fft_size_ & (fft_size_ - 1)) != 0) {
+        std::cerr << "FFT size must be a power of 2" << std::endl;
         return false;
     }
     
-    // Читаем аудио данные
-    if (!readAudioData()) {
-        std::cerr << "Failed to read audio data" << std::endl;
-        return false;
-    }
-    
-    // Извлекаем метаданные
-    extractMetadata();
-    
-    // Выполняем спектральный анализ
-    performSpectralAnalysis();
-    
-    // Анализируем квантовые характеристики
-    analyzeQuantumCharacteristics();
-    
-    is_loaded_ = true;
+    generateWindowFunction();
     return true;
 }
 
-bool AudioAnalyzer::detectFormat(const std::string& file_path) {
-    std::string extension = std::filesystem::path(file_path).extension().string();
-    std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+AudioAnalysisResult AudioAnalyzer::analyzeAudio(const std::vector<double>& audio_buffer) {
+    std::lock_guard<std::mutex> lock(analysis_mutex_);
     
-    if (extension == ".flac") {
-        info_.format = "FLAC";
-        info_.codec = "Free Lossless Audio Codec";
-    } else if (extension == ".wav") {
-        info_.format = "WAV";
-        info_.codec = "PCM";
-    } else if (extension == ".mp3") {
-        info_.format = "MP3";
-        info_.codec = "MPEG-1 Audio Layer III";
-    } else if (extension == ".aiff" || extension == ".aif") {
-        info_.format = "AIFF";
-        info_.codec = "Audio Interchange File Format";
-    } else if (extension == ".ogg") {
-        info_.format = "OGG";
-        info_.codec = "Ogg Vorbis";
-    } else {
-        std::cerr << "Unsupported audio format: " << extension << std::endl;
-        return false;
+    AudioAnalysisResult result;
+    
+    if (audio_buffer.empty()) {
+        return result;
     }
     
-    return true;
+    // Prepare buffer for FFT (pad with zeros if necessary)
+    std::vector<double> padded_buffer = audio_buffer;
+    if (padded_buffer.size() < fft_size_) {
+        padded_buffer.resize(fft_size_, 0.0);
+    } else if (padded_buffer.size() > fft_size_) {
+        padded_buffer.resize(fft_size_);
+    }
+    
+    // Apply window function
+    applyWindow(padded_buffer);
+    
+    // Copy to complex buffer
+    for (size_t i = 0; i < fft_size_; ++i) {
+        fft_buffer_[i] = std::complex<double>(padded_buffer[i], 0.0);
+    }
+    
+    // Perform FFT
+    performFFT(fft_buffer_);
+    
+    // Calculate spectra
+    result.magnitude_spectrum = magnitudeSpectrum(fft_buffer_);
+    result.phase_spectrum = phaseSpectrum(fft_buffer_);
+    result.frequency_spectrum.resize(result.magnitude_spectrum.size());
+    
+    // Fill frequency spectrum
+    for (size_t i = 0; i < result.frequency_spectrum.size(); ++i) {
+        result.frequency_spectrum[i] = getFrequency(i);
+    }
+    
+    // Calculate analysis features
+    result.fundamental_frequency = calculateFundamentalFrequency(result.magnitude_spectrum);
+    result.spectral_centroid = calculateSpectralCentroid(result.magnitude_spectrum);
+    result.spectral_rolloff = calculateSpectralRolloff(result.magnitude_spectrum);
+    result.zero_crossing_rate = calculateZeroCrossingRate(audio_buffer);
+    result.tempo = estimateTempo(audio_buffer);
+    result.volume_level = calculateVolumeLevel(audio_buffer);
+    result.timestamp = std::chrono::high_resolution_clock::now();
+    
+    return result;
 }
 
-bool AudioAnalyzer::readAudioData() {
-    SF_INFO sfinfo;
-    sfinfo.format = 0;
+std::vector<AudioAnalysisResult> AudioAnalyzer::analyzeAudioWithOverlap(const std::vector<double>& audio_buffer) {
+    std::vector<AudioAnalysisResult> results;
     
-    SNDFILE* sndfile = sf_open(file_path_.c_str(), SFM_READ, &sfinfo);
-    if (!sndfile) {
-        std::cerr << "Failed to open audio file: " << sf_strerror(nullptr) << std::endl;
-        return false;
+    if (audio_buffer.size() < fft_size_) {
+        results.push_back(analyzeAudio(audio_buffer));
+        return results;
     }
     
-    // Заполняем информацию об аудио
-    info_.sample_rate = sfinfo.samplerate;
-    info_.channels = sfinfo.channels;
-    info_.bits_per_sample = sfinfo.format & SF_FORMAT_SUBMASK;
-    info_.total_samples = sfinfo.frames;
-    info_.duration_seconds = static_cast<double>(sfinfo.frames) / sfinfo.samplerate;
-    
-    // Читаем аудио данные
-    audio_data_.resize(sfinfo.frames * sfinfo.channels);
-    sf_count_t frames_read = sf_readf_float(sndfile, audio_data_.data(), sfinfo.frames);
-    sf_close(sndfile);
-    
-    if (frames_read <= 0) {
-        std::cerr << "Failed to read audio data" << std::endl;
-        return false;
+    for (size_t start = 0; start + fft_size_ <= audio_buffer.size(); start += hop_size_) {
+        std::vector<double> window_buffer(audio_buffer.begin() + start, 
+                                        audio_buffer.begin() + start + fft_size_);
+        results.push_back(analyzeAudio(window_buffer));
     }
     
-    std::cout << "Loaded audio: " << frames_read << " frames, " 
-              << info_.sample_rate << " Hz, " << info_.channels << " channels" << std::endl;
-    
-    return true;
+    return results;
 }
 
-bool AudioAnalyzer::extractMetadata() {
-    // Попытка извлечь метаданные через TagLib
-    try {
-        TagLib::FileRef f(file_path_.c_str());
-        if (!f.isNull() && f.tag()) {
-            TagLib::Tag* tag = f.tag();
-            
-            metadata_.title = tag->title().to8Bit();
-            metadata_.artist = tag->artist().to8Bit();
-            metadata_.album = tag->album().to8Bit();
-            metadata_.genre = tag->genre().to8Bit();
-            metadata_.year = tag->year();
-            metadata_.track_number = tag->track();
-            metadata_.comment = tag->comment().to8Bit();
+size_t AudioAnalyzer::getFrequencyBin(double frequency) const {
+    return static_cast<size_t>(frequency * fft_size_ / sample_rate_);
+}
+
+double AudioAnalyzer::getFrequency(size_t bin) const {
+    return static_cast<double>(bin * sample_rate_) / static_cast<double>(fft_size_);
+}
+
+void AudioAnalyzer::setFrequencyRange(double min_freq, double max_freq) {
+    min_frequency_ = std::max(0.0, min_freq);
+    max_frequency_ = std::min(static_cast<double>(sample_rate_) / 2.0, max_freq);
+}
+
+void AudioAnalyzer::setHopSize(size_t hop_size) {
+    hop_size_ = std::min(fft_size_, hop_size);
+}
+
+void AudioAnalyzer::performFFT(std::vector<std::complex<double>>& data) {
+    size_t n = data.size();
+    
+    // Bit-reverse permutation
+    for (size_t i = 1, j = 0; i < n; ++i) {
+        size_t bit = n >> 1;
+        while (j & bit) {
+            j ^= bit;
+            bit >>= 1;
         }
-    } catch (...) {
-        // Если TagLib недоступен, используем базовую информацию
-        std::cout << "TagLib not available, using basic metadata" << std::endl;
-    }
-    
-    // Если метаданные не найдены, используем имя файла
-    if (metadata_.title.empty()) {
-        metadata_.title = std::filesystem::path(file_path_).stem().string();
-    }
-    
-    return true;
-}
-
-bool AudioAnalyzer::performSpectralAnalysis() {
-    if (audio_data_.empty()) {
-        std::cerr << "No audio data loaded for spectral analysis" << std::endl;
-        return false;
-    }
-    
-    // Простой FFT анализ (в реальном проекте здесь был бы полноценный FFT)
-    calculateFFT();
-    analyzeFrequencyDomain();
-    
-    return true;
-}
-
-void AudioAnalyzer::calculateFFT() {
-    // Упрощенная реализация FFT для демонстрации
-    // В реальном проекте здесь использовался бы библиотека FFTW или подобная
-    
-    size_t n = audio_data_.size();
-    if (n == 0) return;
-    
-    // Создаем простой спектр для демонстрации
-    spectral_data_.frequencies.resize(n / 2);
-    spectral_data_.magnitudes.resize(n / 2);
-    spectral_data_.phases.resize(n / 2);
-    
-    for (size_t i = 0; i < n / 2; ++i) {
-        spectral_data_.frequencies[i] = static_cast<double>(i) * info_.sample_rate / n;
+        j ^= bit;
         
-        // Простая симуляция спектра
-        double freq = spectral_data_.frequencies[i];
-        if (freq < 1000) {
-            spectral_data_.magnitudes[i] = 0.8 * exp(-freq / 500.0);
-        } else {
-            spectral_data_.magnitudes[i] = 0.2 * exp(-(freq - 1000) / 2000.0);
+        if (i < j) {
+            std::swap(data[i], data[j]);
         }
+    }
+    
+    // FFT computation
+    for (size_t len = 2; len <= n; len <<= 1) {
+        double angle = -2.0 * M_PI / len;
+        std::complex<double> wlen(std::cos(angle), std::sin(angle));
         
-        spectral_data_.phases[i] = 2.0 * M_PI * freq * 0.001; // Простая фаза
+        for (size_t i = 0; i < n; i += len) {
+            std::complex<double> w(1.0, 0.0);
+            for (size_t j = 0; j < len / 2; ++j) {
+                std::complex<double> u = data[i + j];
+                std::complex<double> v = data[i + j + len / 2] * w;
+                data[i + j] = u + v;
+                data[i + j + len / 2] = u - v;
+                w *= wlen;
+            }
+        }
     }
 }
 
-void AudioAnalyzer::analyzeFrequencyDomain() {
-    if (spectral_data_.magnitudes.empty()) return;
+void AudioAnalyzer::generateWindowFunction() {
+    window_function_.resize(fft_size_);
     
-    // Находим доминирующую частоту
-    auto max_it = std::max_element(spectral_data_.magnitudes.begin(), 
-                                   spectral_data_.magnitudes.end());
-    if (max_it != spectral_data_.magnitudes.end()) {
-        size_t max_idx = std::distance(spectral_data_.magnitudes.begin(), max_it);
-        spectral_data_.dominant_frequency = spectral_data_.frequencies[max_idx];
+    // Generate Hann window
+    for (size_t i = 0; i < fft_size_; ++i) {
+        window_function_[i] = 0.5 * (1.0 - std::cos(2.0 * M_PI * i / (fft_size_ - 1)));
+    }
+}
+
+double AudioAnalyzer::calculateFundamentalFrequency(const std::vector<double>& magnitude_spectrum) const {
+    if (magnitude_spectrum.empty()) {
+        return 0.0;
     }
     
-    // Вычисляем спектральный центроид
+    // Find the peak in the magnitude spectrum
+    auto max_it = std::max_element(magnitude_spectrum.begin(), magnitude_spectrum.end());
+    if (max_it == magnitude_spectrum.end()) {
+        return 0.0;
+    }
+    
+    size_t peak_bin = std::distance(magnitude_spectrum.begin(), max_it);
+    return getFrequency(peak_bin);
+}
+
+double AudioAnalyzer::calculateSpectralCentroid(const std::vector<double>& magnitude_spectrum) const {
+    if (magnitude_spectrum.empty()) {
+        return 0.0;
+    }
+    
     double weighted_sum = 0.0;
     double magnitude_sum = 0.0;
     
-    for (size_t i = 0; i < spectral_data_.frequencies.size(); ++i) {
-        weighted_sum += spectral_data_.frequencies[i] * spectral_data_.magnitudes[i];
-        magnitude_sum += spectral_data_.magnitudes[i];
+    for (size_t i = 0; i < magnitude_spectrum.size(); ++i) {
+        double frequency = getFrequency(i);
+        double magnitude = magnitude_spectrum[i];
+        weighted_sum += frequency * magnitude;
+        magnitude_sum += magnitude;
     }
     
-    if (magnitude_sum > 0) {
-        spectral_data_.spectral_centroid = weighted_sum / magnitude_sum;
+    return magnitude_sum > 0.0 ? weighted_sum / magnitude_sum : 0.0;
+}
+
+double AudioAnalyzer::calculateSpectralRolloff(const std::vector<double>& magnitude_spectrum, double threshold) const {
+    if (magnitude_spectrum.empty()) {
+        return 0.0;
     }
     
-    // Спектральная ширина
-    double variance = 0.0;
-    for (size_t i = 0; i < spectral_data_.frequencies.size(); ++i) {
-        double diff = spectral_data_.frequencies[i] - spectral_data_.spectral_centroid;
-        variance += diff * diff * spectral_data_.magnitudes[i];
+    double total_energy = std::accumulate(magnitude_spectrum.begin(), magnitude_spectrum.end(), 0.0);
+    double target_energy = total_energy * threshold;
+    double cumulative_energy = 0.0;
+    
+    for (size_t i = 0; i < magnitude_spectrum.size(); ++i) {
+        cumulative_energy += magnitude_spectrum[i];
+        if (cumulative_energy >= target_energy) {
+            return getFrequency(i);
+        }
     }
     
-    if (magnitude_sum > 0) {
-        spectral_data_.spectral_bandwidth = sqrt(variance / magnitude_sum);
+    return getFrequency(magnitude_spectrum.size() - 1);
+}
+
+double AudioAnalyzer::calculateZeroCrossingRate(const std::vector<double>& audio_buffer) const {
+    if (audio_buffer.size() < 2) {
+        return 0.0;
     }
     
-    // Спектральный rolloff (85-й процентиль)
-    std::vector<double> sorted_magnitudes = spectral_data_.magnitudes;
-    std::sort(sorted_magnitudes.begin(), sorted_magnitudes.end());
+    size_t zero_crossings = 0;
+    for (size_t i = 1; i < audio_buffer.size(); ++i) {
+        if ((audio_buffer[i] >= 0.0) != (audio_buffer[i-1] >= 0.0)) {
+            zero_crossings++;
+        }
+    }
     
-    size_t rolloff_idx = static_cast<size_t>(0.85 * sorted_magnitudes.size());
-    if (rolloff_idx < spectral_data_.magnitudes.size()) {
-        spectral_data_.spectral_rolloff = sorted_magnitudes[rolloff_idx];
+    return static_cast<double>(zero_crossings) / static_cast<double>(audio_buffer.size() - 1);
+}
+
+double AudioAnalyzer::estimateTempo(const std::vector<double>& audio_buffer) const {
+    // Simple tempo estimation based on zero crossing rate
+    double zcr = calculateZeroCrossingRate(audio_buffer);
+    double estimated_bpm = zcr * 60.0 * 2.0; // Rough conversion
+    return std::max(60.0, std::min(200.0, estimated_bpm));
+}
+
+double AudioAnalyzer::calculateVolumeLevel(const std::vector<double>& audio_buffer) const {
+    if (audio_buffer.empty()) {
+        return 0.0;
+    }
+    
+    // Calculate RMS (Root Mean Square) volume
+    double sum_squares = 0.0;
+    for (double sample : audio_buffer) {
+        sum_squares += sample * sample;
+    }
+    
+    double rms = std::sqrt(sum_squares / static_cast<double>(audio_buffer.size()));
+    return std::min(1.0, rms);
+}
+
+void AudioAnalyzer::applyWindow(std::vector<double>& buffer) const {
+    if (buffer.size() != window_function_.size()) {
+        return;
+    }
+    
+    for (size_t i = 0; i < buffer.size(); ++i) {
+        buffer[i] *= window_function_[i];
     }
 }
 
-bool AudioAnalyzer::analyzeQuantumCharacteristics() {
-    if (!isLoaded()) return false;
+std::vector<double> AudioAnalyzer::magnitudeSpectrum(const std::vector<std::complex<double>>& fft_result) const {
+    std::vector<double> magnitude(fft_result.size() / 2 + 1);
     
-    // Анализ квантовых характеристик звука
-    // В реальном проекте здесь была бы более сложная квантовая физика
-    
-    std::cout << "Analyzing quantum characteristics..." << std::endl;
-    std::cout << "  Dominant frequency: " << spectral_data_.dominant_frequency << " Hz" << std::endl;
-    std::cout << "  Spectral centroid: " << spectral_data_.spectral_centroid << " Hz" << std::endl;
-    std::cout << "  Spectral bandwidth: " << spectral_data_.spectral_bandwidth << " Hz" << std::endl;
-    
-    return true;
-}
-
-void AudioAnalyzer::clear() {
-    file_path_.clear();
-    metadata_ = AudioMetadata();
-    info_ = AudioInfo();
-    audio_data_.clear();
-    spectral_data_ = SpectralData();
-    is_loaded_ = false;
-}
-
-bool AudioAnalyzer::exportAnalysisReport(const std::string& output_path) {
-    if (!isLoaded()) return false;
-    
-    std::ofstream report(output_path);
-    if (!report.is_open()) {
-        std::cerr << "Failed to open output file: " << output_path << std::endl;
-        return false;
+    for (size_t i = 0; i < magnitude.size(); ++i) {
+        magnitude[i] = std::abs(fft_result[i]);
     }
     
-    report << "=== anAntaSound Audio Analysis Report ===" << std::endl;
-    report << "File: " << file_path_ << std::endl;
-    report << "Format: " << info_.format << " (" << info_.codec << ")" << std::endl;
-    report << std::endl;
-    
-    // Метаданные
-    report << "--- Metadata ---" << std::endl;
-    report << "Title: " << metadata_.title << std::endl;
-    report << "Artist: " << metadata_.artist << std::endl;
-    report << "Album: " << metadata_.album << std::endl;
-    report << "Genre: " << metadata_.genre << std::endl;
-    report << "Year: " << metadata_.year << std::endl;
-    report << std::endl;
-    
-    // Техническая информация
-    report << "--- Technical Info ---" << std::endl;
-    report << "Sample Rate: " << info_.sample_rate << " Hz" << std::endl;
-    report << "Channels: " << info_.channels << std::endl;
-    report << "Bits per Sample: " << info_.bits_per_sample << std::endl;
-    report << "Duration: " << info_.duration_seconds << " seconds" << std::endl;
-    report << "Total Samples: " << info_.total_samples << std::endl;
-    report << std::endl;
-    
-    // Спектральный анализ
-    report << "--- Spectral Analysis ---" << std::endl;
-    report << "Dominant Frequency: " << spectral_data_.dominant_frequency << " Hz" << std::endl;
-    report << "Spectral Centroid: " << spectral_data_.spectral_centroid << " Hz" << std::endl;
-    report << "Spectral Bandwidth: " << spectral_data_.spectral_bandwidth << " Hz" << std::endl;
-    report << "Spectral Rolloff: " << spectral_data_.spectral_rolloff << std::endl;
-    
-    report.close();
-    std::cout << "Analysis report exported to: " << output_path << std::endl;
-    
-    return true;
+    return magnitude;
 }
 
-// Реализация утилит
-namespace AudioUtils {
-
-bool convertFormat(const std::string& input_path, const std::string& output_path, 
-                  const std::string& output_format) {
-    // В реальном проекте здесь была бы конвертация через FFmpeg или подобную библиотеку
-    std::cout << "Converting " << input_path << " to " << output_format << " format" << std::endl;
-    std::cout << "Output: " << output_path << std::endl;
+std::vector<double> AudioAnalyzer::phaseSpectrum(const std::vector<std::complex<double>>& fft_result) const {
+    std::vector<double> phase(fft_result.size() / 2 + 1);
     
-    // Заглушка для демонстрации
-    return true;
-}
-
-bool normalizeAudio(const std::string& input_path, const std::string& output_path, 
-                   double target_level_db) {
-    std::cout << "Normalizing audio: " << input_path << std::endl;
-    std::cout << "Target level: " << target_level_db << " dB" << std::endl;
-    
-    // Заглушка для демонстрации
-    return true;
-}
-
-bool resampleAudio(const std::string& input_path, const std::string& output_path, 
-                   int target_sample_rate) {
-    std::cout << "Resampling audio to " << target_sample_rate << " Hz" << std::endl;
-    
-    // Заглушка для демонстрации
-    return true;
-}
-
-bool generateTestSignal(const std::string& output_path, double frequency, 
-                       double duration, double amplitude) {
-    std::cout << "Generating test signal: " << frequency << " Hz, " 
-              << duration << "s, amplitude: " << amplitude << std::endl;
-    
-    // Заглушка для демонстрации
-    return true;
-}
-
-bool validateFLACQuality(const std::string& file_path) {
-    if (!std::filesystem::exists(file_path)) {
-        std::cerr << "File not found: " << file_path << std::endl;
-        return false;
+    for (size_t i = 0; i < phase.size(); ++i) {
+        phase[i] = std::arg(fft_result[i]);
     }
     
-    std::string extension = std::filesystem::path(file_path).extension().string();
-    std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-    
-    if (extension != ".flac") {
-        std::cerr << "Not a FLAC file: " << file_path << std::endl;
-        return false;
-    }
-    
-    // Простая проверка через libsndfile
-    SF_INFO sfinfo;
-    sfinfo.format = 0;
-    
-    SNDFILE* sndfile = sf_open(file_path.c_str(), SFM_READ, &sfinfo);
-    if (!sndfile) {
-        std::cerr << "Failed to open FLAC file: " << sf_strerror(nullptr) << std::endl;
-        return false;
-    }
-    
-    std::cout << "FLAC file validation successful:" << std::endl;
-    std::cout << "  Sample rate: " << sfinfo.samplerate << " Hz" << std::endl;
-    std::cout << "  Channels: " << sfinfo.channels << std::endl;
-    std::cout << "  Duration: " << static_cast<double>(sfinfo.frames) / sfinfo.samplerate << "s" << std::endl;
-    
-    sf_close(sndfile);
-    return true;
+    return phase;
 }
-
-std::string getFileInfo(const std::string& file_path) {
-    if (!std::filesystem::exists(file_path)) {
-        return "File not found";
-    }
-    
-    std::ostringstream info;
-    std::filesystem::path path(file_path);
-    
-    info << "File: " << path.filename().string() << std::endl;
-    info << "Size: " << std::filesystem::file_size(path) << " bytes" << std::endl;
-    info << "Format: " << path.extension().string() << std::endl;
-    
-    // Попытка получить аудио информацию
-    SF_INFO sfinfo;
-    sfinfo.format = 0;
-    
-    SNDFILE* sndfile = sf_open(file_path.c_str(), SFM_READ, &sfinfo);
-    if (sndfile) {
-        info << "Sample Rate: " << sfinfo.samplerate << " Hz" << std::endl;
-        info << "Channels: " << sfinfo.channels << std::endl;
-        info << "Duration: " << static_cast<double>(sfinfo.frames) / sfinfo.samplerate << "s" << std::endl;
-        sf_close(sndfile);
-    }
-    
-    return info.str();
-}
-
-} // namespace AudioUtils
 
 } // namespace AnantaSound
