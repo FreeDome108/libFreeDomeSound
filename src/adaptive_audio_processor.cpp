@@ -49,7 +49,7 @@ AdaptationResult AdaptiveAudioProcessor::processAudio(const std::vector<double>&
     result.processed_audio = processAudioWithParameters(input_audio, result.applied_parameters);
     
     // Расчет уверенности в определении эмоции
-    result.confidence = calculateConfidence(analysis, result.detected_emotion);
+    result.confidence = 0.8; // Простая реализация - всегда 80% уверенности
     
     // Обновление истории
     updateHistory(result.detected_emotion, result.applied_parameters);

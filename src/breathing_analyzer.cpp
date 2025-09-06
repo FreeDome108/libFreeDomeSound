@@ -3,6 +3,7 @@
 #include <cmath>
 #include <numeric>
 #include <iostream>
+#include <map>
 
 namespace AnantaSound {
 
@@ -46,13 +47,14 @@ BreathingAnalysisResult BreathingAnalyzer::analyzeBreathing(const std::vector<do
     // Расчет основных параметров дыхания
     result.breathing_rate = calculateBreathingRate(audio_analysis);
     result.breathing_depth = calculateBreathingDepth(audio_analysis);
-    result.breathing_regularity = calculateBreathingRegularity(breathing_rate_history_);
+    std::vector<double> rate_history_vec(breathing_rate_history_.begin(), breathing_rate_history_.end());
+    result.breathing_regularity = calculateBreathingRegularity(rate_history_vec);
     
     // Классификация состояния и паттерна
     result.current_state = classifyBreathingState(result.breathing_rate, 
                                                  result.breathing_depth, 
                                                  result.breathing_regularity);
-    result.pattern = classifyBreathingPattern(breathing_rate_history_);
+    result.pattern = classifyBreathingPattern(rate_history_vec);
     
     // Расчет уровней стресса и расслабления
     result.stress_level = calculateStressLevel(result.breathing_rate, 

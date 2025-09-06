@@ -64,7 +64,7 @@ private:
     
 public:
     AdaptiveAudioProcessor(size_t fft_size = 1024, size_t sample_rate = 44100);
-    ~AdaptativeAudioProcessor() = default;
+    ~AdaptiveAudioProcessor() = default;
     
     // Инициализация процессора
     bool initialize();
