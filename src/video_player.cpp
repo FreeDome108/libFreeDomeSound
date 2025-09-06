@@ -109,7 +109,7 @@ bool VinylVideoPlayer::loadVideo(const std::string& filepath) {
     // Получаем информацию об аудио
     if (audio_stream != -1) {
         AVCodecParameters* audio_codecpar = format_ctx->streams[audio_stream]->codecpar;
-        video_info_.audio_channels = audio_codecpar->channels;
+        video_info_.audio_channels = audio_codecpar->ch_layout.nb_channels;
         video_info_.audio_sample_rate = audio_codecpar->sample_rate;
         video_info_.has_audio = true;
     } else {
@@ -245,14 +245,14 @@ void VinylVideoPlayer::playbackLoop() {
     
     // Инициализируем декодеры
     AVCodecParameters* video_codecpar = format_ctx->streams[video_stream]->codecpar;
-    AVCodec* video_codec = avcodec_find_decoder(video_codecpar->codec_id);
+    const AVCodec* video_codec = avcodec_find_decoder(video_codecpar->codec_id);
     video_codec_ctx = avcodec_alloc_context3(video_codec);
     avcodec_parameters_to_context(video_codec_ctx, video_codecpar);
     avcodec_open2(video_codec_ctx, video_codec, nullptr);
     
     if (audio_stream != -1) {
         AVCodecParameters* audio_codecpar = format_ctx->streams[audio_stream]->codecpar;
-        AVCodec* audio_codec = avcodec_find_decoder(audio_codecpar->codec_id);
+        const AVCodec* audio_codec = avcodec_find_decoder(audio_codecpar->codec_id);
         audio_codec_ctx = avcodec_alloc_context3(audio_codec);
         avcodec_parameters_to_context(audio_codec_ctx, audio_codecpar);
         avcodec_open2(audio_codec_ctx, audio_codec, nullptr);
@@ -268,14 +268,14 @@ void VinylVideoPlayer::playbackLoop() {
     if (audio_codec_ctx) {
         swr_ctx = swr_alloc_set_opts(nullptr,
             AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_FLT, 44100,
-            audio_codec_ctx->channel_layout, audio_codec_ctx->sample_fmt, audio_codec_ctx->sample_rate,
+            audio_codec_ctx->ch_layout.u.mask, audio_codec_ctx->sample_fmt, audio_codec_ctx->sample_rate,
             0, nullptr);
         swr_init(swr_ctx);
     }
     
     // Буферы
     AVFrame* frame = av_frame_alloc();
-    AVPacket* packet = av_alloc_packet();
+    AVPacket* packet = av_packet_alloc();
     
     // Основной цикл воспроизведения
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -331,7 +331,7 @@ void VinylVideoPlayer::playbackLoop() {
                     av_frame_free(&rgb_frame);
                     
                     // Обновляем позицию
-                    current_position_ += frame_duration * playback_speed_;
+                    current_position_ = current_position_.load() + frame_duration * playback_speed_.load();
                 }
             }
         }
@@ -455,9 +455,9 @@ void VinylVideoPlayer::applyGrooveDepth(VideoFrame& frame) {
         float g = (frame.data[i + 1] / 255.0f - 0.5f) * depth_factor + 0.5f;
         float b = (frame.data[i + 2] / 255.0f - 0.5f) * depth_factor + 0.5f;
         
-        frame.data[i] = std::clamp(static_cast<uint8_t>(r * 255.0f), 0, 255);
-        frame.data[i + 1] = std::clamp(static_cast<uint8_t>(g * 255.0f), 0, 255);
-        frame.data[i + 2] = std::clamp(static_cast<uint8_t>(b * 255.0f), 0, 255);
+        frame.data[i] = static_cast<uint8_t>(std::clamp(r * 255.0f, 0.0f, 255.0f));
+        frame.data[i + 1] = static_cast<uint8_t>(std::clamp(g * 255.0f, 0.0f, 255.0f));
+        frame.data[i + 2] = static_cast<uint8_t>(std::clamp(b * 255.0f, 0.0f, 255.0f));
     }
 }
 
@@ -467,9 +467,9 @@ void VinylVideoPlayer::applyEQCurve(VideoFrame& frame) {
     
     for (size_t i = 0; i < frame.data.size(); i += 3) {
         // Применяем разные коэффициенты к RGB каналам
-        frame.data[i] = std::clamp(static_cast<uint8_t>(frame.data[i] * eq_factor), 0, 255);         // R
-        frame.data[i + 1] = std::clamp(static_cast<uint8_t>(frame.data[i + 1] * eq_factor * 0.9f), 0, 255); // G
-        frame.data[i + 2] = std::clamp(static_cast<uint8_t>(frame.data[i + 2] * eq_factor * 1.1f), 0, 255); // B
+        frame.data[i] = static_cast<uint8_t>(std::clamp(frame.data[i] * eq_factor, 0.0f, 255.0f));         // R
+        frame.data[i + 1] = static_cast<uint8_t>(std::clamp(frame.data[i + 1] * eq_factor * 0.9f, 0.0f, 255.0f)); // G
+        frame.data[i + 2] = static_cast<uint8_t>(std::clamp(frame.data[i + 2] * eq_factor * 1.1f, 0.0f, 255.0f)); // B
     }
 }
 
@@ -570,28 +570,28 @@ bool VinylVideoPlayer::isVinylRecording(const std::string& filepath) const {
 // Реализация VinylUtils
 namespace VinylUtils {
 
-VinylType detectVinylType(const std::string& filepath) {
+VinylUtils::VinylType VinylUtils::detectVinylType(const std::string& filepath) {
     std::string filename = filepath.substr(filepath.find_last_of('/') + 1);
     std::transform(filename.begin(), filename.end(), filename.begin(), ::tolower);
     
     if (filename.find("78") != std::string::npos || filename.find("shellac") != std::string::npos) {
-        return VinylType::SHELLAC_78;
+        return VinylUtils::VinylType::SHELLAC_78;
     } else if (filename.find("45") != std::string::npos || filename.find("single") != std::string::npos) {
-        return VinylType::VINYL_45;
+        return VinylUtils::VinylType::VINYL_45;
     } else if (filename.find("16") != std::string::npos) {
-        return VinylType::VINYL_16;
+        return VinylUtils::VinylType::VINYL_16;
     } else if (filename.find("33") != std::string::npos || filename.find("lp") != std::string::npos) {
-        return VinylType::VINYL_33;
+        return VinylUtils::VinylType::VINYL_33;
     }
     
-    return VinylType::UNKNOWN;
+    return VinylUtils::VinylType::UNKNOWN;
 }
 
-VinylVideoPlayer::VinylParameters getRecommendedSettings(VinylType type) {
+VinylVideoPlayer::VinylParameters VinylUtils::getRecommendedSettings(VinylUtils::VinylType type) {
     VinylVideoPlayer::VinylParameters params;
     
     switch (type) {
-        case VinylType::SHELLAC_78:
+        case VinylUtils::VinylType::SHELLAC_78:
             params.turntable_speed = 78.26;
             params.needle_pressure = 3.0;
             params.wow_flutter = 0.5;
@@ -600,7 +600,7 @@ VinylVideoPlayer::VinylParameters getRecommendedSettings(VinylType type) {
             params.eq_curve = 0.8;
             break;
             
-        case VinylType::VINYL_45:
+        case VinylUtils::VinylType::VINYL_45:
             params.turntable_speed = 45.0;
             params.needle_pressure = 2.0;
             params.wow_flutter = 0.2;
@@ -609,7 +609,7 @@ VinylVideoPlayer::VinylParameters getRecommendedSettings(VinylType type) {
             params.eq_curve = 1.0;
             break;
             
-        case VinylType::VINYL_33:
+        case VinylUtils::VinylType::VINYL_33:
             params.turntable_speed = 33.33;
             params.needle_pressure = 1.5;
             params.wow_flutter = 0.1;
@@ -618,7 +618,7 @@ VinylVideoPlayer::VinylParameters getRecommendedSettings(VinylType type) {
             params.eq_curve = 1.0;
             break;
             
-        case VinylType::VINYL_16:
+        case VinylUtils::VinylType::VINYL_16:
             params.turntable_speed = 16.67;
             params.needle_pressure = 2.5;
             params.wow_flutter = 0.3;
@@ -635,23 +635,23 @@ VinylVideoPlayer::VinylParameters getRecommendedSettings(VinylType type) {
     return params;
 }
 
-VideoFrame enhanceVinylRecording(const VideoFrame& frame, VinylType type) {
+VideoFrame VinylUtils::enhanceVinylRecording(const VideoFrame& frame, VinylUtils::VinylType type) {
     VideoFrame enhanced = frame;
     
     // Удаляем артефакты в зависимости от типа пластинки
     switch (type) {
-        case VinylType::SHELLAC_78:
+        case VinylUtils::VinylType::SHELLAC_78:
             removeCrackle(enhanced);
             removeHiss(enhanced);
             break;
             
-        case VinylType::VINYL_45:
-        case VinylType::VINYL_33:
+        case VinylUtils::VinylType::VINYL_45:
+        case VinylUtils::VinylType::VINYL_33:
             removeClick(enhanced);
             removePop(enhanced);
             break;
             
-        case VinylType::VINYL_16:
+        case VinylUtils::VinylType::VINYL_16:
             removeClick(enhanced);
             removeCrackle(enhanced);
             break;
@@ -663,7 +663,7 @@ VideoFrame enhanceVinylRecording(const VideoFrame& frame, VinylType type) {
     return enhanced;
 }
 
-void removeClick(VideoFrame& frame) {
+void VinylUtils::removeClick(VideoFrame& frame) {
     // Простой алгоритм удаления кликов
     // В реальной реализации здесь был бы более сложный алгоритм
     for (size_t i = 3; i < frame.data.size() - 3; i += 3) {
@@ -680,7 +680,7 @@ void removeClick(VideoFrame& frame) {
     }
 }
 
-void removePop(VideoFrame& frame) {
+void VinylUtils::removePop(VideoFrame& frame) {
     // Аналогично кликам, но для более крупных артефактов
     for (size_t i = 9; i < frame.data.size() - 9; i += 3) {
         float current = (frame.data[i] + frame.data[i + 1] + frame.data[i + 2]) / 3.0f;
@@ -704,7 +704,7 @@ void removePop(VideoFrame& frame) {
     }
 }
 
-void removeCrackle(VideoFrame& frame) {
+void VinylUtils::removeCrackle(VideoFrame& frame) {
     // Удаление треска - более мягкий фильтр
     for (size_t i = 6; i < frame.data.size() - 6; i += 3) {
         float sum = 0.0f;
@@ -727,7 +727,7 @@ void removeCrackle(VideoFrame& frame) {
     }
 }
 
-void removeHiss(VideoFrame& frame) {
+void VinylUtils::removeHiss(VideoFrame& frame) {
     // Удаление шипения - низкочастотный фильтр
     for (size_t i = 12; i < frame.data.size() - 12; i += 3) {
         float sum = 0.0f;

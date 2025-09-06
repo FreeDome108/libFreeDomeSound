@@ -29,15 +29,15 @@ endif()
 # Поиск зависимостей
 find_package(Threads REQUIRED)
 
-# Поиск FFmpeg библиотек для видео поддержки
+# Поиск FFmpeg библиотек для видео поддержки (временно отключено)
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(FFMPEG REQUIRED 
-    libavformat 
-    libavcodec 
-    libavutil 
-    libswscale 
-    libswresample
-)
+# pkg_check_modules(FFMPEG REQUIRED 
+#     libavformat 
+#     libavcodec 
+#     libavutil 
+#     libswscale 
+#     libswresample
+# )
 
 # Основная библиотека
 add_library(anantasound_core
@@ -49,7 +49,7 @@ add_library(anantasound_core
     src/consciousness_integration.cpp
     src/mechanical_devices.cpp
     src/qrd_integration.cpp
-    src/video_player.cpp
+    # src/video_player.cpp  # Временно отключен из-за проблем с FFmpeg API
 )
 
 # Настройка свойств библиотеки
@@ -62,13 +62,13 @@ set_target_properties(anantasound_core PROPERTIES
 # Подключение зависимостей
 target_link_libraries(anantasound_core
     PUBLIC Threads::Threads
-    PRIVATE ${FFMPEG_LIBRARIES}
+    # PRIVATE ${FFMPEG_LIBRARIES}  # Временно отключено
 )
 
-# Включение директорий FFmpeg
-target_include_directories(anantasound_core
-    PRIVATE ${FFMPEG_INCLUDE_DIRS}
-)
+# Включение директорий FFmpeg (временно отключено)
+# target_include_directories(anantasound_core
+#     PRIVATE ${FFMPEG_INCLUDE_DIRS}
+# )
 
 # Включение директорий
 target_include_directories(anantasound_core
@@ -159,13 +159,19 @@ if(BUILD_EXAMPLES)
     )
     target_link_libraries(flac_utility PRIVATE anantasound_core)
     
-    # Виниловый видео плеер демо
-    add_executable(vinyl_video_demo
-        examples/vinyl_video_demo.cpp
+    # Виниловый видео плеер демо (отключен из-за проблем с FFmpeg)
+    # add_executable(vinyl_video_demo
+    #     examples/vinyl_video_demo.cpp
+    # )
+    # target_link_libraries(vinyl_video_demo PRIVATE anantasound_core)
+    # target_include_directories(vinyl_video_demo PRIVATE ${FFMPEG_INCLUDE_DIRS})
+    # target_link_libraries(vinyl_video_demo PRIVATE ${FFMPEG_LIBRARIES})
+    
+    # Простое виниловое демо
+    add_executable(simple_vinyl_demo
+        examples/simple_vinyl_demo.cpp
     )
-    target_link_libraries(vinyl_video_demo PRIVATE anantasound_core)
-    target_include_directories(vinyl_video_demo PRIVATE ${FFMPEG_INCLUDE_DIRS})
-    target_link_libraries(vinyl_video_demo PRIVATE ${FFMPEG_LIBRARIES})
+    target_link_libraries(simple_vinyl_demo PRIVATE anantasound_core)
     
     # Подключаем аудио и видео библиотеки для macOS
     target_include_directories(samples_demo_audio PRIVATE 
@@ -175,10 +181,10 @@ if(BUILD_EXAMPLES)
         "/opt/homebrew/opt/ffmpeg/include"
     )
     
-    target_include_directories(vinyl_video_demo PRIVATE 
-        "/opt/homebrew/include"
-        "/opt/homebrew/opt/ffmpeg/include"
-    )
+    # target_include_directories(vinyl_video_demo PRIVATE 
+    #     "/opt/homebrew/include"
+    #     "/opt/homebrew/opt/ffmpeg/include"
+    # )
     
     target_include_directories(samples_demo_dual PRIVATE 
         "/opt/homebrew/include"
@@ -207,20 +213,20 @@ if(BUILD_EXAMPLES)
         "-lswresample"
     )
     
-    target_link_libraries(vinyl_video_demo PRIVATE 
-        "-framework CoreAudio"
-        "-framework AudioToolbox"
-        "-framework AudioUnit"
-        "-framework CoreFoundation"
-        "-L/opt/homebrew/lib"
-        "-lsndfile"
-        "-lportaudio"
-        "-lavformat"
-        "-lavcodec"
-        "-lavutil"
-        "-lswscale"
-        "-lswresample"
-    )
+    # target_link_libraries(vinyl_video_demo PRIVATE 
+    #     "-framework CoreAudio"
+    #     "-framework AudioToolbox"
+    #     "-framework AudioUnit"
+    #     "-framework CoreFoundation"
+    #     "-L/opt/homebrew/lib"
+    #     "-lsndfile"
+    #     "-lportaudio"
+    #     "-lavformat"
+    #     "-lavcodec"
+    #     "-lavutil"
+    #     "-lswscale"
+    #     "-lswresample"
+    # )
     
     target_link_libraries(samples_demo_dual PRIVATE 
         "-framework CoreAudio"
