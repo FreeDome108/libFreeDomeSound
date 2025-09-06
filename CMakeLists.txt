@@ -29,15 +29,81 @@ endif()
 # Поиск зависимостей
 find_package(Threads REQUIRED)
 
-# Поиск FFmpeg библиотек для видео поддержки (временно отключено)
+# Поиск FFmpeg библиотек для видео поддержки
 find_package(PkgConfig REQUIRED)
-# pkg_check_modules(FFMPEG REQUIRED 
-#     libavformat 
-#     libavcodec 
-#     libavutil 
-#     libswscale 
-#     libswresample
-# )
+
+# Попробуем найти FFmpeg через pkg-config
+pkg_check_modules(FFMPEG QUIET 
+    libavformat 
+    libavcodec 
+    libavutil 
+    libswscale 
+    libswresample
+)
+
+# Если не найдено через pkg-config, используем ручной поиск
+if(NOT FFMPEG_FOUND)
+    message(STATUS "FFmpeg not found via pkg-config, trying manual search...")
+    
+    # Поиск FFmpeg в стандартных местах
+    find_path(FFMPEG_INCLUDE_DIR libavformat/avformat.h
+        PATHS
+        /opt/homebrew/include
+        /usr/local/include
+        /usr/include
+    )
+    
+    find_library(AVFORMAT_LIBRARY avformat
+        PATHS
+        /opt/homebrew/lib
+        /usr/local/lib
+        /usr/lib
+    )
+    
+    find_library(AVCODEC_LIBRARY avcodec
+        PATHS
+        /opt/homebrew/lib
+        /usr/local/lib
+        /usr/lib
+    )
+    
+    find_library(AVUTIL_LIBRARY avutil
+        PATHS
+        /opt/homebrew/lib
+        /usr/local/lib
+        /usr/lib
+    )
+    
+    find_library(SWSCALE_LIBRARY swscale
+        PATHS
+        /opt/homebrew/lib
+        /usr/local/lib
+        /usr/lib
+    )
+    
+    find_library(SWRESAMPLE_LIBRARY swresample
+        PATHS
+        /opt/homebrew/lib
+        /usr/local/lib
+        /usr/lib
+    )
+    
+    if(AVFORMAT_LIBRARY AND AVCODEC_LIBRARY AND AVUTIL_LIBRARY)
+        set(FFMPEG_FOUND TRUE)
+        set(FFMPEG_INCLUDE_DIRS ${FFMPEG_INCLUDE_DIR})
+        set(FFMPEG_LIBRARIES 
+            ${AVFORMAT_LIBRARY}
+            ${AVCODEC_LIBRARY}
+            ${AVUTIL_LIBRARY}
+            ${SWSCALE_LIBRARY}
+            ${SWRESAMPLE_LIBRARY}
+        )
+        message(STATUS "FFmpeg found manually: ${FFMPEG_LIBRARIES}")
+    else()
+        message(WARNING "FFmpeg libraries not found. Video functionality will be disabled.")
+        set(FFMPEG_FOUND FALSE)
+    endif()
+endif()
 
 # Основная библиотека
 add_library(anantasound_core

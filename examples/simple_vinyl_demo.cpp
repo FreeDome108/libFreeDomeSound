@@ -171,8 +171,11 @@ public:
         VideoFrameData() {
             data.resize(width * height * 3); // RGB
             // Заполняем случайными данными
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::uniform_real_distribution<double> dist(0.0, 1.0);
             for (size_t i = 0; i < data.size(); ++i) {
-                data[i] = static_cast<uint8_t>(noise_dist_(rng_) * 255);
+                data[i] = static_cast<uint8_t>(dist(gen) * 255);
             }
         }
     };
@@ -262,7 +265,7 @@ public:
         std::cout << "Coherence ratio: " << std::fixed << std::setprecision(3) 
                   << stats.coherence_ratio << std::endl;
         std::cout << "Total processing time: " << std::fixed << std::setprecision(2) 
-                  << stats.total_processing_time << "s" << std::endl;
+                  << "N/A" << "s" << std::endl;
     }
     
     void shutdown() {
