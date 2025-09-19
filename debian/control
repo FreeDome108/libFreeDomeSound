@@ -1,0 +1,41 @@
+Source: libfreedomesound
+Section: libs
+Priority: optional
+Maintainer: FreeDome Project <freedome@nativemind.dev>
+Build-Depends: debhelper (>= 12), cmake (>= 3.16), libavformat-dev, libavcodec-dev, libavutil-dev, libswscale-dev, libswresample-dev, pkg-config
+Standards-Version: 4.5.0
+Homepage: https://github.com/freedome/freedomesound
+
+Package: libfreedomesound2
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: FreeDome Sound processing library - runtime
+ FreeDome Sound is a quantum-enhanced audio processing library designed 
+ for immersive dome projection systems. It provides advanced spatial audio 
+ processing, quantum feedback systems, and consciousness integration 
+ capabilities for professional audio applications.
+ .
+ This package contains the shared libraries.
+
+Package: libfreedomesound-dev
+Architecture: any
+Section: libdevel
+Depends: libfreedomesound2 (= ${binary:Version}), ${misc:Depends}, libavformat-dev, libavcodec-dev, libavutil-dev, libswscale-dev, libswresample-dev
+Description: FreeDome Sound processing library - development files
+ FreeDome Sound is a quantum-enhanced audio processing library designed 
+ for immersive dome projection systems. It provides advanced spatial audio 
+ processing, quantum feedback systems, and consciousness integration 
+ capabilities for professional audio applications.
+ .
+ This package contains the header files and static libraries needed for
+ developing applications that use FreeDome Sound.
+
+Package: freedomesound-tools
+Architecture: any
+Depends: libfreedomesound2 (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
+Description: FreeDome Sound processing tools
+ FreeDome Sound is a quantum-enhanced audio processing library designed 
+ for immersive dome projection systems.
+ .
+ This package contains command-line tools and utilities for working with
+ FreeDome Sound audio processing.

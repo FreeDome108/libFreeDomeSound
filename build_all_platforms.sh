@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# anAntaSound Universal Build Script
+# FreeDome Sound Universal Build Script
 # Supports: Linux, macOS, iOS, Android, Aurora OS, Windows
 
 set -e
 
-echo "=== anAntaSound Universal Build Script ==="
+echo "=== FreeDome Sound Universal Build Script ==="
 echo "Building for multiple platforms..."
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -116,7 +116,7 @@ for dir in */; do
     if [[ -d "$dir" ]]; then
         platform=$(basename "$dir")
         echo "Creating archive for ${platform}..."
-        tar -czf "anantasound-${platform}.tar.gz" "$dir"
+        tar -czf "freedomesound-${platform}.tar.gz" "$dir"
     fi
 done
 

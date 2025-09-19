@@ -211,7 +211,9 @@ private:
 std::string getVersion();
 std::string getBuildInfo();
 
-// Включение видео плеера
+// Включение видео плеера только если включена поддержка видео
+#ifdef ANANTASOUND_ENABLE_VIDEO
 #include "video_player.hpp"
+#endif
 
 } // namespace AnantaSound

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# anAntaSound Linux Build Script
+# FreeDome Sound Linux Build Script
 set -e
 
-echo "=== Building anAntaSound for Linux ==="
+echo "=== Building FreeDome Sound for Linux ==="
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="${PROJECT_ROOT}/build/linux"

@@ -1,0 +1,21 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@ --buildsystem=cmake
+
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DBUILD_SHARED_LIBS=ON \
+		-DBUILD_TESTS=OFF \
+		-DBUILD_EXAMPLES=ON \
+		-DENABLE_QUANTUM_FEEDBACK=ON \
+		-DENABLE_MECHANICAL_DEVICES=ON \
+		-DENABLE_QRD_INTEGRATION=ON
+
+override_dh_auto_install:
+	dh_auto_install
+	# Install examples as tools
+	mkdir -p debian/tmp/usr/bin
+	find debian/tmp -name "*_demo" -executable -type f -exec cp {} debian/tmp/usr/bin/ \;
+	find debian/tmp -name "flac_utility" -executable -type f -exec cp {} debian/tmp/usr/bin/ \;

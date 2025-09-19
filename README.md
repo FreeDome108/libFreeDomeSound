@@ -1,248 +1,233 @@
-# anAntaSound - Quantum Acoustic Consciousness System with Vinyl Video Player
+# 🎵 FreeDome Sound - Quantum Audio Processing Library
 
-**anAntaSound** - это передовая система квантовой акустики и интеграции сознания, разработанная для создания гармоничных звуковых полей и квантовых резонансов с **поддержкой воспроизведения видео с записанных виниловых пластинок**.
+**FreeDome Sound** is an advanced quantum-enhanced audio processing library designed for immersive dome projection systems. It provides spatial audio processing, quantum feedback systems, consciousness integration capabilities, and specialized audio format support including the revolutionary **DAGA** format.
 
-## 🌟 Особенности
+## 🌟 Key Features
 
-- **Квантовая акустическая обработка** - продвинутые алгоритмы квантовой механики для звука
-- **Интеграция сознания** - система анализа и модуляции сознания через звуковые поля
-- **QRD интеграция** - поддержка Quantum Resonance Device для усиления эффектов
-- **Механические устройства** - управление кармическими кластерами и духовными устройствами
-- **🎬 Виниловый видео плеер** - воспроизведение видео с эффектами виниловых пластинок
-- **🎵 Виниловые эффекты** - имитация 78/45/33 RPM записей с аутентичными артефактами
-- **Кросс-платформенность** - поддержка Linux, macOS, iOS, Android, Aurora OS, Windows
+### 🔬 Quantum Audio Technologies
+- **Quantum Acoustic Processing** - Advanced quantum mechanics algorithms for audio
+- **Quantum Feedback Systems** - Real-time quantum resonance processing
+- **Consciousness Integration** - Audio-consciousness interface systems
+- **108-Element Quantum Geometry** - Spatial audio based on quantum principles
 
-## 🚀 Быстрый старт
+### 🎧 Audio Processing Capabilities
+- **Spatial Audio Processing** - 3D positional audio for dome environments
+- **Ambisonic Processing** - Up to 3rd order ambisonics support
+- **Adaptive Audio Processing** - Real-time audio adaptation
+- **Breathing Analysis** - Biometric audio feedback integration
 
-### Требования
+### 🎬 Advanced Media Support
+- **DAGA Format** - Quantum audio format with spatial attributes
+- **Video Processing** - FFmpeg-based video playback with audio effects
+- **Vinyl Effects Simulation** - Authentic vinyl record sound processing
+- **Multi-format Support** - WAV, MP3, FLAC, OGG, AAC
+
+### 🏗️ Professional Features
+- **Mechanical Devices Support** - Integration with physical audio hardware
+- **QRD Integration** - Quantum Resonance Device connectivity
+- **Cross-platform Support** - Linux, macOS, Windows, iOS, Android
+
+## 🚀 Quick Start
+
+### Prerequisites
 
 - **CMake** 3.16+
-- **C++17** компилятор
-- **Threads** библиотека
-- **Make** или **Ninja**
-- **FFmpeg** (для видео поддержки)
-- **PortAudio** и **libsndfile** (для аудио)
+- **C++17** compatible compiler
+- **FFmpeg** (for video functionality)
+- **PortAudio** and **libsndfile** (for audio I/O)
+- **pkg-config**
 
-### Установка зависимостей
+### Installation
 
+#### Using pkg-config (Recommended)
 ```bash
-# Автоматическая установка FFmpeg и аудио библиотек
-./scripts/install_ffmpeg.sh
+pkg-config --cflags --libs freedomesound
 ```
 
-### Сборка для текущей платформы
+#### Using CMake
+```cmake
+find_package(FreeDomeSound REQUIRED)
+target_link_libraries(your_target FreeDomeSound::freedomesound_core)
+```
+
+### Building from Source
 
 ```bash
-# Клонировать репозиторий
+# Clone the repository
 git clone <repository-url>
-cd anAntaSound
+cd FreeDomeSound
 
-# Создать и перейти в build директорию
+# Create build directory
 mkdir build && cd build
 
-# Конфигурация
-cmake .. -DCMAKE_BUILD_TYPE=Release
+# Configure with CMake
+cmake .. -DCMAKE_BUILD_TYPE=Release \
+         -DBUILD_SHARED_LIBS=ON \
+         -DBUILD_EXAMPLES=ON \
+         -DENABLE_QUANTUM_FEEDBACK=ON
 
-# Сборка
+# Build
 make -j$(nproc)
 
-# Установка
-make install
+# Install
+sudo make install
 ```
 
-## 🌍 Сборка для всех платформ
+## 📚 Documentation
 
-### Универсальная сборка
+### Format Specifications
+- **[DAGA Format](docs/formats/DAGA_FORMAT.md)** - Quantum audio format specification
+- **[Audio Formats](docs/formats/)** - Supported audio format documentation
 
+### Quantum Technologies
+- **[Quantum Physics](docs/quantum/QUANTUM_PHYSICS.md)** - Mathematical foundations
+- **[Quantum Technologies](docs/quantum/QUANTUM_TECHNOLOGIES.md)** - Technical overview
+
+## 🔧 Configuration Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `BUILD_SHARED_LIBS` | Build shared libraries | ON |
+| `BUILD_TESTS` | Build test suite | ON |
+| `BUILD_EXAMPLES` | Build example applications | ON |
+| `ENABLE_QUANTUM_FEEDBACK` | Enable quantum feedback systems | ON |
+| `ENABLE_MECHANICAL_DEVICES` | Enable mechanical device support | ON |
+| `ENABLE_QRD_INTEGRATION` | Enable QRD integration | ON |
+
+## 🎵 DAGA Audio Format
+
+FreeDome Sound introduces the **DAGA** (Dome Audio with Advanced Spatial Attributes) format:
+
+### Key Features:
+- **3D Spatial Positioning** - Precise audio positioning in 3D space
+- **Quantum Resonance Integration** - Built-in quantum frequency support
+- **Dome Optimization** - Specialized for dome projection environments
+- **Ambisonic Support** - Full ambisonic audio processing
+- **Real-time Processing** - Optimized for real-time applications
+
+### Example Usage:
+```cpp
+#include <freedomesound/freedomesound_core.hpp>
+
+// Load DAGA file
+auto audio_source = FreeDomeSound::loadDAGA("audio.daga");
+
+// Configure spatial positioning
+audio_source.setPosition({0.0f, 0.0f, 1.0f});
+audio_source.setOrientation({0.0f, 1.0f, 0.0f});
+
+// Enable quantum resonance
+audio_source.enableQuantumResonance(528.0f); // Solfeggio frequency
+
+// Process audio
+audio_source.process();
+```
+
+## 🧪 Examples and Demos
+
+### Basic Audio Processing
 ```bash
-# Собрать для всех доступных платформ
-./build_all_platforms.sh
+./freedomesound_demo
 ```
 
-### Платформо-специфичная сборка
-
-#### Linux
+### Quantum Acoustic Demo
 ```bash
-./build_scripts/build_linux.sh
-```
-
-#### macOS (x64 + ARM64 + Universal)
-```bash
-./build_scripts/build_macos.sh
-```
-
-#### iOS (Simulator + Device)
-```bash
-./build_scripts/build_ios.sh
-```
-
-#### Android (требует Android NDK)
-```bash
-# Установить ANDROID_NDK_ROOT
-export ANDROID_NDK_ROOT=/path/to/android-ndk
-./build_scripts/build_android.sh
-```
-
-#### Aurora OS (требует Aurora Platform SDK)
-```bash
-# Установить Aurora Platform SDK в /opt/aurora-platform-sdk
-./build_scripts/build_avrora.sh
-```
-
-#### Windows (требует MinGW для кросс-компиляции)
-```bash
-# Установить MinGW-w64
-# Ubuntu/Debian: sudo apt-get install mingw-w64
-# macOS: brew install mingw-w64
-./build_scripts/build_windows.sh
-```
-
-## 📦 Результаты сборки
-
-После успешной сборки все файлы будут размещены в директории `install/`:
-
-```
-install/
-├── linux/           # Linux x64 библиотеки и заголовки
-├── macos/           # macOS x64, ARM64 и универсальные библиотеки
-├── ios/             # iOS симулятор и устройство библиотеки
-├── android/         # Android ABIs (arm64-v8a, armeabi-v7a, x86_64, x86)
-├── aurora/          # Aurora OS ARMv7hl библиотеки
-└── windows/         # Windows x64 библиотеки
-```
-
-### Распределительные архивы
-
-Каждая платформа создает сжатые архивы:
-- `anantasound-{platform}-{arch}.tar.gz`
-
-## 🔧 Конфигурация CMake
-
-### Основные опции
-
-```bash
-cmake .. \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DBUILD_SHARED_LIBS=ON \
-    -DBUILD_TESTS=ON \
-    -DBUILD_EXAMPLES=ON \
-    -DENABLE_QUANTUM_FEEDBACK=ON \
-    -DENABLE_MECHANICAL_DEVICES=ON \
-    -DENABLE_QRD_INTEGRATION=ON
-```
-
-### Опции сборки
-
-| Опция | Описание | По умолчанию |
-|-------|----------|--------------|
-| `BUILD_SHARED_LIBS` | Сборка разделяемых библиотек | ON |
-| `BUILD_TESTS` | Сборка тестов | ON |
-| `BUILD_EXAMPLES` | Сборка примеров | ON |
-| `ENABLE_QUANTUM_FEEDBACK` | Включить квантовую обратную связь | ON |
-| `ENABLE_MECHANICAL_DEVICES` | Включить механические устройства | ON |
-| `ENABLE_QRD_INTEGRATION` | Включить QRD интеграцию | ON |
-
-## 🧪 Тестирование
-
-```bash
-# Запустить все тесты
-make test
-
-# Или запустить тесты напрямую
-./anantasound_tests
-```
-
-## 📚 Примеры использования
-
-```bash
-# Собрать примеры
-make examples
-
-# Запустить демо
-./anantasound_demo
 ./quantum_acoustic_demo
-./mechanical_devices_demo
-
-# 🎬 Запустить виниловый видео плеер
-./vinyl_video_demo
 ```
 
-### 🎵 Виниловый видео плеер
-
-Новый виниловый видео плеер поддерживает:
-
-- **Форматы видео**: MP4, AVI, MKV, MOV, WMV, FLV, WebM
-- **Форматы аудио**: WAV, MP3, FLAC
-- **Виниловые эффекты**:
-  - 78 RPM Shellac (шеллак, моно, высокий шум)
-  - 45 RPM Singles (синглы, стерео, средний шум)
-  - 33⅓ RPM LPs (долгоиграющие, стерео, низкий шум)
-  - 16⅔ RPM (редкие записи, моно)
-
-#### Режимы демонстрации:
-
-1. **Последовательное воспроизведение** - все видео подряд
-2. **Интерактивный режим** - выбор конкретного видео
-3. **Демонстрация эффектов** - сравнение разных виниловых настроек
-
-## 🔌 Интеграция в проекты
-
-### CMake
-
-```cmake
-find_package(anantasound REQUIRED)
-target_link_libraries(your_target anantasound::anantasound_core)
-```
-
-### pkg-config
-
+### Advanced Audio Features
 ```bash
-pkg-config --cflags --libs anantasound
+./advanced_audio_demo
+./adaptive_audio_demo
+./breathing_analysis_demo
 ```
 
-## 🏗️ Архитектура
+### Vinyl Effects Demo
+```bash
+./vinyl_video_demo
+./simple_vinyl_demo
+```
+
+## 🏗️ Architecture
 
 ```
-anAntaSound/
+FreeDomeSound/
 ├── src/
-│   ├── anantasound_core.cpp          # Основная система
-│   ├── quantum_feedback_system.cpp   # Квантовая обратная связь
-│   ├── consciousness_integration.cpp # Интеграция сознания
-│   ├── mechanical_devices.cpp        # Механические устройства
-│   └── qrd_integration.cpp          # QRD интеграция
-├── tests/                           # Тесты
-├── examples/                        # Примеры использования
-├── build_scripts/                   # Скрипты сборки для платформ
-└── cmake/                          # CMake конфигурация
+│   ├── freedomesound_core.cpp          # Main library core
+│   ├── audio_analyzer.cpp              # Audio analysis systems
+│   ├── adaptive_audio_processor.cpp    # Adaptive processing
+│   ├── quantum_feedback_system.cpp     # Quantum feedback
+│   ├── consciousness_integration.cpp   # Consciousness interface
+│   ├── mechanical_devices.cpp          # Hardware integration
+│   └── qrd_integration.cpp            # QRD connectivity
+├── docs/
+│   ├── formats/                        # Format specifications
+│   └── quantum/                        # Quantum documentation
+├── examples/                           # Usage examples
+├── tests/                              # Test suite
+└── debian/                            # Debian packaging
 ```
 
-## 🐛 Устранение неполадок
+## 📦 Debian/Ubuntu Packages
 
-### Проблемы сборки
+FreeDome Sound is available as Debian/Ubuntu packages:
 
-1. **Ошибка компилятора**: Убедитесь, что используется C++17
-2. **Отсутствующие зависимости**: Проверьте наличие Threads библиотеки
-3. **Проблемы линковки**: Убедитесь, что все исходные файлы существуют
+### Runtime Library
+```bash
+sudo apt install libfreedomesound2
+```
 
-### Проблемы платформ
+### Development Package
+```bash
+sudo apt install libfreedomesound-dev
+```
 
-- **Windows**: Установите MinGW-w64 для кросс-компиляции
-- **Android**: Установите Android NDK и установите `ANDROID_NDK_ROOT`
-- **iOS**: Требуется Xcode на macOS
-- **Aurora**: Установите Aurora Platform SDK
+### Command-line Tools
+```bash
+sudo apt install freedomesound-tools
+```
 
-## 📄 Лицензия
+## 🔊 Audio Processing Pipeline
 
-[Укажите вашу лицензию]
+1. **Input Processing** - Multi-format audio input support
+2. **Quantum Analysis** - 108-element quantum geometry processing
+3. **Spatial Processing** - 3D positional audio calculation
+4. **Resonance Application** - Quantum frequency resonance
+5. **Dome Optimization** - Specialized dome audio processing
+6. **Output Rendering** - Multi-channel audio output
 
-## 🤝 Вклад в проект
+## 🌍 Platform Support
 
-Мы приветствуем вклад в развитие anAntaSound! Пожалуйста, создавайте issues и pull requests.
+- **Linux** (x86_64, ARM64)
+- **macOS** (Intel, Apple Silicon, Universal)
+- **Windows** (x86_64)
+- **iOS** (Device, Simulator)
+- **Android** (ARM64, ARMv7, x86_64, x86)
 
-## 📞 Поддержка
+## 🐛 Troubleshooting
 
-Для получения поддержки создайте issue в репозитории или свяжитесь с командой разработки.
+### Build Issues
+- Ensure C++17 compiler support
+- Verify FFmpeg installation for video features
+- Check pkg-config availability for dependencies
+
+### Runtime Issues
+- Verify audio device permissions
+- Check DAGA file format validity
+- Ensure quantum feedback system initialization
+
+## 📄 License
+
+FreeDome Sound is licensed under [License Name]. See LICENSE file for details.
+
+## 🤝 Contributing
+
+We welcome contributions to FreeDome Sound! Please see CONTRIBUTING.md for guidelines.
+
+## 📞 Support
+
+For support, please create an issue in the repository or contact the development team.
 
 ---
 
-**anAntaSound** - открывая новые горизонты квантовой акустики и сознания 🎵✨
+**FreeDome Sound** - Revolutionizing audio processing with quantum technology 🎵✨

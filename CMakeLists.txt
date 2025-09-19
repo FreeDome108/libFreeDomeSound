@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(anAntaSound VERSION 2.1.0 LANGUAGES CXX)
+project(FreeDomeSound VERSION 2.1.0 LANGUAGES CXX)
 
 # Настройка стандарта C++
 set(CMAKE_CXX_STANDARD 17)
@@ -106,8 +106,8 @@ if(NOT FFMPEG_FOUND)
 endif()
 
 # Основная библиотека
-set(ANANTASOUND_SOURCES
-    src/anantasound_core.cpp
+set(FREEDOMESOUND_SOURCES
+    src/freedomesound_core.cpp
     src/audio_analyzer.cpp
     src/adaptive_audio_processor.cpp
     src/breathing_analyzer.cpp
@@ -119,44 +119,49 @@ set(ANANTASOUND_SOURCES
 
 # Добавляем видео плеер только если FFmpeg найден
 if(FFMPEG_FOUND)
-    list(APPEND ANANTASOUND_SOURCES src/video_player.cpp)
-    add_definitions(-DANANTASOUND_ENABLE_VIDEO)
+    list(APPEND FREEDOMESOUND_SOURCES src/video_player.cpp)
+    add_definitions(-DFREEDOME_SOUND_ENABLE_VIDEO)
     message(STATUS "Video functionality enabled")
 else()
     message(STATUS "Video functionality disabled - FFmpeg not found")
 endif()
 
-add_library(anantasound_core ${ANANTASOUND_SOURCES})
+add_library(freedomesound_core ${FREEDOMESOUND_SOURCES})
 
 # Настройка свойств библиотеки
-set_target_properties(anantasound_core PROPERTIES
+set_target_properties(freedomesound_core PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}
-    PUBLIC_HEADER "src/anantasound_core.hpp;src/audio_analyzer.hpp;src/adaptive_audio_processor.hpp;src/breathing_analyzer.hpp;src/quantum_feedback_system.hpp;src/mechanical_devices.hpp;src/consciousness_integration.hpp;src/qrd_integration.hpp;src/video_player.hpp"
+    PUBLIC_HEADER "src/freedomesound_core.hpp;src/audio_analyzer.hpp;src/adaptive_audio_processor.hpp;src/breathing_analyzer.hpp;src/quantum_feedback_system.hpp;src/mechanical_devices.hpp;src/consciousness_integration.hpp;src/qrd_integration.hpp;src/video_player.hpp"
 )
 
 # Подключение зависимостей
-target_link_libraries(anantasound_core
+target_link_libraries(freedomesound_core
     PUBLIC Threads::Threads
-    # PRIVATE ${FFMPEG_LIBRARIES}  # Временно отключено
 )
 
-# Включение директорий FFmpeg (временно отключено)
-# target_include_directories(anantasound_core
-#     PRIVATE ${FFMPEG_INCLUDE_DIRS}
-# )
+# Добавляем FFmpeg зависимости только если найдены
+if(FFMPEG_FOUND)
+    target_link_libraries(freedomesound_core
+        PRIVATE ${FFMPEG_LIBRARIES}
+    )
+    
+    target_include_directories(freedomesound_core
+        PRIVATE ${FFMPEG_INCLUDE_DIRS}
+    )
+endif()
 
 # Включение директорий
-target_include_directories(anantasound_core
+target_include_directories(freedomesound_core
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<INSTALL_INTERFACE:include>
 )
 
 # Компиляционные определения
-target_compile_definitions(anantasound_core
+target_compile_definitions(freedomesound_core
     PRIVATE
-        ANANTASOUND_VERSION="${PROJECT_VERSION}"
+        FREEDOME_SOUND_VERSION="${PROJECT_VERSION}"
         $<$<BOOL:${ENABLE_QUANTUM_FEEDBACK}>:ENABLE_QUANTUM_FEEDBACK>
         $<$<BOOL:${ENABLE_MECHANICAL_DEVICES}>:ENABLE_MECHANICAL_DEVICES>
         $<$<BOOL:${ENABLE_QRD_INTEGRATION}>:ENABLE_QRD_INTEGRATION>
@@ -165,89 +170,91 @@ target_compile_definitions(anantasound_core
 # Конфигурационный файл CMake
 include(CMakePackageConfigHelpers)
 configure_package_config_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/anantasoundConfig.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/anantasoundConfig.cmake"
-    INSTALL_DESTINATION lib/cmake/anantasound
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FreeDomeSoundConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/FreeDomeSoundConfig.cmake"
+    INSTALL_DESTINATION lib/cmake/FreeDomeSound
 )
 
 write_basic_package_version_file(
-    anantasoundConfigVersion.cmake
+    FreeDomeSoundConfigVersion.cmake
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY SameMajorVersion
 )
 
 # Демонстрационные приложения
 if(BUILD_EXAMPLES)
-    add_executable(anantasound_demo
-        examples/anantasound_demo.cpp
+    add_executable(freedomesound_demo
+        examples/freedomesound_demo.cpp
     )
-    target_link_libraries(anantasound_demo PRIVATE anantasound_core)
+    target_link_libraries(freedomesound_demo PRIVATE freedomesound_core)
     
     add_executable(quantum_acoustic_demo
         examples/quantum_acoustic_demo.cpp
     )
-    target_link_libraries(quantum_acoustic_demo PRIVATE anantasound_core)
+    target_link_libraries(quantum_acoustic_demo PRIVATE freedomesound_core)
     
     if(ENABLE_MECHANICAL_DEVICES)
         add_executable(mechanical_devices_demo
             examples/mechanical_devices_demo.cpp
         )
-        target_link_libraries(mechanical_devices_demo PRIVATE anantasound_core)
+        target_link_libraries(mechanical_devices_demo PRIVATE freedomesound_core)
     endif()
     
     add_executable(samples_demo
         examples/samples_demo.cpp
     )
-    target_link_libraries(samples_demo PRIVATE anantasound_core)
+    target_link_libraries(samples_demo PRIVATE freedomesound_core)
     
     add_executable(samples_demo_audio
         examples/samples_demo_audio.cpp
     )
-    target_link_libraries(samples_demo_audio PRIVATE anantasound_core)
+    target_link_libraries(samples_demo_audio PRIVATE freedomesound_core)
     
     add_executable(samples_demo_dual
         examples/samples_demo_dual.cpp
     )
-    target_link_libraries(samples_demo_dual PRIVATE anantasound_core)
+    target_link_libraries(samples_demo_dual PRIVATE freedomesound_core)
     
     add_executable(advanced_audio_demo
         examples/advanced_audio_demo.cpp
     )
-    target_link_libraries(advanced_audio_demo PRIVATE anantasound_core)
+    target_link_libraries(advanced_audio_demo PRIVATE freedomesound_core)
     
     add_executable(adaptive_audio_demo
         examples/adaptive_audio_demo.cpp
     )
-    target_link_libraries(adaptive_audio_demo PRIVATE anantasound_core)
+    target_link_libraries(adaptive_audio_demo PRIVATE freedomesound_core)
     
     add_executable(breathing_analysis_demo
         examples/breathing_analysis_demo.cpp
     )
-    target_link_libraries(breathing_analysis_demo PRIVATE anantasound_core)
+    target_link_libraries(breathing_analysis_demo PRIVATE freedomesound_core)
     
     add_executable(comprehensive_demo
         examples/comprehensive_demo.cpp
     )
-    target_link_libraries(comprehensive_demo PRIVATE anantasound_core)
+    target_link_libraries(comprehensive_demo PRIVATE freedomesound_core)
     
     add_executable(flac_utility
         tools/flac_utility.cpp
     )
-    target_link_libraries(flac_utility PRIVATE anantasound_core)
+    target_link_libraries(flac_utility PRIVATE freedomesound_core)
     
-    # Виниловый видео плеер демо (отключен из-за проблем с FFmpeg)
-    # add_executable(vinyl_video_demo
-    #     examples/vinyl_video_demo.cpp
-    # )
-    # target_link_libraries(vinyl_video_demo PRIVATE anantasound_core)
-    # target_include_directories(vinyl_video_demo PRIVATE ${FFMPEG_INCLUDE_DIRS})
-    # target_link_libraries(vinyl_video_demo PRIVATE ${FFMPEG_LIBRARIES})
+    # Виниловый видео плеер демо (только если FFmpeg найден)
+    if(FFMPEG_FOUND)
+        add_executable(vinyl_video_demo
+            examples/vinyl_video_demo.cpp
+        )
+        target_link_libraries(vinyl_video_demo PRIVATE freedomesound_core)
+        target_include_directories(vinyl_video_demo PRIVATE ${FFMPEG_INCLUDE_DIRS})
+        target_link_libraries(vinyl_video_demo PRIVATE ${FFMPEG_LIBRARIES})
+    endif()
     
     # Простое виниловое демо
     add_executable(simple_vinyl_demo
         examples/simple_vinyl_demo.cpp
     )
-    target_link_libraries(simple_vinyl_demo PRIVATE anantasound_core)
+    target_link_libraries(simple_vinyl_demo PRIVATE freedomesound_core)
     
     # Подключаем аудио и видео библиотеки для macOS
     target_include_directories(samples_demo_audio PRIVATE 
@@ -329,53 +336,65 @@ endif()
 if(BUILD_TESTS)
     enable_testing()
     
-    add_executable(anantasound_tests
+    add_executable(freedomesound_tests
         tests/test_main.cpp
-        tests/test_anantasound_core.cpp
+        tests/test_freedomesound_core.cpp
         tests/test_quantum_feedback.cpp
         tests/test_consciousness.cpp
         tests/test_mechanical_devices.cpp
     )
-    target_link_libraries(anantasound_tests PRIVATE anantasound_core)
+    target_link_libraries(freedomesound_tests PRIVATE freedomesound_core)
     
-    add_test(NAME anantasound_tests COMMAND anantasound_tests)
+    add_test(NAME freedomesound_tests COMMAND freedomesound_tests)
 endif()
 
 # Установка
-install(TARGETS anantasound_core
-    EXPORT anantasoundTargets
+install(TARGETS freedomesound_core
+    EXPORT FreeDomeSoundTargets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
-    PUBLIC_HEADER DESTINATION include/anantasound
+    PUBLIC_HEADER DESTINATION include/freedomesound
 )
 
 # Установка заголовочных файлов
 install(DIRECTORY src/
-    DESTINATION include/anantasound
+    DESTINATION include/freedomesound
     FILES_MATCHING PATTERN "*.hpp"
 )
 
 # Экспорт целей
-install(EXPORT anantasoundTargets
-    FILE anantasoundTargets.cmake
-    NAMESPACE anantasound::
-    DESTINATION lib/cmake/anantasound
+install(EXPORT FreeDomeSoundTargets
+    FILE FreeDomeSoundTargets.cmake
+    NAMESPACE FreeDomeSound::
+    DESTINATION lib/cmake/FreeDomeSound
 )
 
 # Конфигурационные файлы
 install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/anantasoundConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/anantasoundConfigVersion.cmake"
-    DESTINATION lib/cmake/anantasound
+    "${CMAKE_CURRENT_BINARY_DIR}/FreeDomeSoundConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/FreeDomeSoundConfigVersion.cmake"
+    DESTINATION lib/cmake/FreeDomeSound
+)
+
+# Создание pkg-config файла
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/freedomesound.pc.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/freedomesound.pc"
+    @ONLY
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/freedomesound.pc"
+    DESTINATION lib/pkgconfig
 )
 
 # Создание директории cmake если её нет
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # Создание базового конфигурационного файла
-file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/anantasoundConfig.cmake.in" 
+file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FreeDomeSoundConfig.cmake.in" 
 "@PACKAGE_INIT@
-include(\"\${CMAKE_CURRENT_LIST_DIR}/anantasoundTargets.cmake\")
-check_required_components(anantasound)
+include(\"\${CMAKE_CURRENT_LIST_DIR}/FreeDomeSoundTargets.cmake\")
+check_required_components(FreeDomeSound)
 ")
