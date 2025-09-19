@@ -106,7 +106,7 @@ if(NOT FFMPEG_FOUND)
 endif()
 
 # Основная библиотека
-add_library(anantasound_core
+set(ANANTASOUND_SOURCES
     src/anantasound_core.cpp
     src/audio_analyzer.cpp
     src/adaptive_audio_processor.cpp
@@ -115,8 +115,18 @@ add_library(anantasound_core
     src/consciousness_integration.cpp
     src/mechanical_devices.cpp
     src/qrd_integration.cpp
-    # src/video_player.cpp  # Временно отключен из-за проблем с FFmpeg API
 )
+
+# Добавляем видео плеер только если FFmpeg найден
+if(FFMPEG_FOUND)
+    list(APPEND ANANTASOUND_SOURCES src/video_player.cpp)
+    add_definitions(-DANANTASOUND_ENABLE_VIDEO)
+    message(STATUS "Video functionality enabled")
+else()
+    message(STATUS "Video functionality disabled - FFmpeg not found")
+endif()
+
+add_library(anantasound_core ${ANANTASOUND_SOURCES})
 
 # Настройка свойств библиотеки
 set_target_properties(anantasound_core PROPERTIES
