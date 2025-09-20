@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(FreeDomeSound VERSION 2.1.0 LANGUAGES CXX)
+project(FreeDomeSound VERSION 2.2.0 LANGUAGES CXX)
 
 # Настройка стандарта C++
 set(CMAKE_CXX_STANDARD 17)
@@ -115,6 +115,8 @@ set(FREEDOMESOUND_SOURCES
     src/consciousness_integration.cpp
     src/mechanical_devices.cpp
     src/qrd_integration.cpp
+    src/format_handler.cpp
+    src/gpu_processor.cpp
 )
 
 # Добавляем видео плеер только если FFmpeg найден
@@ -132,7 +134,7 @@ add_library(freedomesound_core ${FREEDOMESOUND_SOURCES})
 set_target_properties(freedomesound_core PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}
-    PUBLIC_HEADER "src/freedomesound_core.hpp;src/audio_analyzer.hpp;src/adaptive_audio_processor.hpp;src/breathing_analyzer.hpp;src/quantum_feedback_system.hpp;src/mechanical_devices.hpp;src/consciousness_integration.hpp;src/qrd_integration.hpp;src/video_player.hpp"
+    PUBLIC_HEADER "src/freedomesound_core.hpp;src/audio_analyzer.hpp;src/adaptive_audio_processor.hpp;src/breathing_analyzer.hpp;src/quantum_feedback_system.hpp;src/mechanical_devices.hpp;src/consciousness_integration.hpp;src/qrd_integration.hpp;src/video_player.hpp;src/format_handler.hpp;src/gpu_processor.hpp"
 )
 
 # Подключение зависимостей
@@ -255,6 +257,12 @@ if(BUILD_EXAMPLES)
         examples/simple_vinyl_demo.cpp
     )
     target_link_libraries(simple_vinyl_demo PRIVATE freedomesound_core)
+    
+    # Демо форматов и GPU
+    add_executable(format_gpu_demo
+        examples/format_gpu_demo.cpp
+    )
+    target_link_libraries(format_gpu_demo PRIVATE freedomesound_core)
     
     # Подключаем аудио и видео библиотеки для macOS
     target_include_directories(samples_demo_audio PRIVATE 

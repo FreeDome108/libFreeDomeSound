@@ -1,3 +1,18 @@
+libfreedomesound (2.2.0-1) unstable; urgency=medium
+
+  * Added format handler module for audio file processing
+  * Added GPU processor module for hardware-accelerated audio processing
+  * Support for DAGA quantum audio format with spatial attributes
+  * GPU acceleration support (CUDA, OpenCL, Metal, Software fallback)
+  * Enhanced spatial audio processing capabilities
+  * Quantum resonance processing on GPU
+  * Holographic audio processing
+  * Consciousness integration with GPU acceleration
+  * Improved cross-platform GPU support
+  * Updated dependencies for GPU libraries
+
+ -- FreeDome Project <freedome@nativemind.dev>  Fri, 19 Sep 2025 12:00:00 +0000
+
 libfreedomesound (2.1.0-1) unstable; urgency=medium
 
   * Initial release of FreeDome Sound library
